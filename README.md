@@ -43,3 +43,18 @@ To process a transcript, pass the directory containing the JSON file as an argum
 
 ```sh
 docker run --env-file .env -v $(pwd)/transcript_samples:/app/transcript_samples mytag /app/transcript_samples
+```
+
+## Setup jigasi
+
+copy `finalize.sh` to `/tmp/script/finalize.sh` and edit `/etc/jitsi/jigasi/sip-communicator.properties`
+
+```sh
+# execute one or more scripts when a transcript or recording is saved
+org.jitsi.jigasi.transcription.EXECUTE_SCRIPTS=true
+org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST_SEPARATOR=","
+org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST=/tmp/script/finalize.sh
+```
+
+This way enables to final script executed. You should change the image tag in `finalize.sh` if needed.
+
