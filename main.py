@@ -4,6 +4,7 @@ import time
 import re
 import json
 import requests
+import opencc
 from minio import Minio
 from minio.error import S3Error
 from dotenv import load_dotenv
@@ -48,9 +49,10 @@ class JsonFileHandler:
         text = "\n".join(formatted_texts)
         print(text)
         if text:
-            summary = chat_with_ollama(text)
+            summary = chat_with_ollama(text)            
             print(summary)
-            summary_text = summary["message"]["content"]            
+            converter = opencc.OpenCC('s2t.json') # converting simplified chinese to tranditional chinese (tw)
+            summary_text = converter.convert(summary["message"]["content"])
             summary_file_path = f"{meet_id}.summary.txt"
             # Write the summary to the file
             with open(summary_file_path, 'w', encoding='utf-8') as file:
@@ -98,7 +100,7 @@ def chat_with_ollama(text):
     }
     # Send the request
     try:
-        response = requests.post(endpoint, json=payload, headers=headers, verify=False)
+        response = requests.post(endpoint, json=payload, headers=headers, verify=False, timeout=30)
         response.raise_for_status()
         response_data = response.json()
         return response_data

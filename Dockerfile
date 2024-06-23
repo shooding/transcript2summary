@@ -4,6 +4,12 @@ FROM python:3.12-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Install opencc and other necessary packages
+RUN apt-get update && \
+    apt-get install -y opencc && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy the current directory contents into the container at /app
 COPY main.py /app/main.py
 COPY requirements.txt /app/requirements.txt
