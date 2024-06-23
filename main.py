@@ -9,17 +9,20 @@ from minio import Minio
 from minio.error import S3Error
 from dotenv import load_dotenv
 from io import BytesIO
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Get environment variables
+JIGASI_TRANSCRIPT_FOLDER = os.getenv('JIGASI_TRANSCRIPT_FOLDER')
 OLLAMA_HOST = os.getenv('OLLAMA_HOST')
 MINIO_SERVER = os.getenv('MINIO_SERVER')
 MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY')
 MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY')
 MINIO_BUCKET_NAME = os.getenv('MINIO_BUCKET_NAME')
-TRANSCRIPT_PATH = os.getenv('TRANSCRIPT_PATH')
+SUMMARY_PATH = os.getenv('SUMMARY_PATH')
 
 class JsonFileHandler:
     def __init__(self, minio_client, bucket_name):
@@ -66,7 +69,7 @@ class JsonFileHandler:
             print(f'About to upload from {summary_file_path}')
             with open(summary_file_path, 'rb') as file_data:
                 file_stat = os.stat(summary_file_path)
-                remote_path = f"{TRANSCRIPT_PATH}/{os.path.basename(summary_file_path)}"
+                remote_path = f"{SUMMARY_PATH}/{os.path.basename(summary_file_path)}"
                 self.minio_client.put_object(
                     self.bucket_name,
                     remote_path,
@@ -113,29 +116,43 @@ def chat_with_ollama(text):
     except requests.exceptions.RequestException as req_err:
         print(f"An error occurred: {req_err}")
 
+class Watcher:
+    def __init__(self, directory_to_watch, handler):
+        self.directory_to_watch = directory_to_watch
+        self.event_handler = handler
+        self.observer = Observer()
+
+    def run(self):
+        self.observer.schedule(self.event_handler, self.directory_to_watch, recursive=True)
+        self.observer.start()
+        try:
+            while True:
+                time.sleep(5)
+        except KeyboardInterrupt:
+            self.observer.stop()
+        self.observer.join()
+
+class Handler(FileSystemEventHandler):
+    def __init__(self, json_handler):
+        self.json_handler = json_handler
+
+    def on_created(self, event):
+        if event.is_directory:
+            return None
+        elif event.src_path.endswith('.json'):
+            print(f"File created: {event.src_path}")
+            self.json_handler.process_file(event.src_path)
+
+    def on_modified(self, event):
+        if event.is_directory:
+            return None
+        elif event.src_path.endswith('.json'):
+            print(f"File modified: {event.src_path}")
+            self.json_handler.process_file(event.src_path)
+
 # Main execution flow
 if __name__ == "__main__":
-
-    # Check if directory path is provided
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <absolute_directory_path>")
-        sys.exit(1)
-    
-    directory_path = sys.argv[1]
-    
-    # Ensure the path is absolute
-    if not os.path.isabs(directory_path):
-        print("Please provide an absolute directory path.")
-        sys.exit(1)
-    
-    # Get the JSON file in the directory
-    json_files = [file for file in os.listdir(directory_path) if file.endswith('.json')]
-    if len(json_files) != 1:
-        print("The directory should contain exactly one JSON file.")
-        sys.exit(1)
-    
-    json_file_path = os.path.join(directory_path, json_files[0])
-    
+       
     # Initialize MinIO client
     minio_client = Minio(
         MINIO_SERVER,
@@ -144,5 +161,9 @@ if __name__ == "__main__":
         secure=False  # Set to True if using HTTPS
     )
 
-    event_handler = JsonFileHandler(minio_client, MINIO_BUCKET_NAME)
-    event_handler.process_file(json_file_path)
+    json_handler = JsonFileHandler(minio_client, MINIO_BUCKET_NAME)
+    event_handler = Handler(json_handler)
+    watcher = Watcher(JIGASI_TRANSCRIPT_FOLDER, event_handler)
+
+    print(f"Starting to watch folder: {JIGASI_TRANSCRIPT_FOLDER}")
+    watcher.run()

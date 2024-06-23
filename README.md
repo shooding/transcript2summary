@@ -24,12 +24,13 @@ This project processes meeting transcripts produced by Jigasi json format, gener
 
     Populate the `.env` file with the following variables:
     ```
+    JIGASI_TRANSCRIPT_FOLDER=/tmp/transcripts
     OLLAMA_HOST=<your_ollama_host>
     MINIO_SERVER=<your_minio_server>
     MINIO_ACCESS_KEY=<your_minio_access_key>
     MINIO_SECRET_KEY=<your_minio_secret_key>
     MINIO_BUCKET_NAME=<your_minio_bucket_name>
-    TRANSCRIPT_PATH=<your_transcript_path>
+    SUMMARY_PATH=<your_transcript_path>
     ```
 
 3. **Build the Docker image**:
@@ -42,19 +43,6 @@ This project processes meeting transcripts produced by Jigasi json format, gener
 To process a transcript, pass the directory containing the JSON file as an argument when running the Docker container. Ensure the directory contains exactly one JSON file.
 
 ```sh
-docker run --env-file .env -v $(pwd)/transcript_samples:/app/transcript_samples mytag /app/transcript_samples
+docker run -d --network host --platform=linux/amd64 --env-file .env -v /tmp/transcripts:/tmp/transcripts mytag
 ```
-
-## Setup jigasi
-
-copy `finalize.sh` to `/tmp/script/finalize.sh` and edit `/etc/jitsi/jigasi/sip-communicator.properties`
-
-```sh
-# execute one or more scripts when a transcript or recording is saved
-org.jitsi.jigasi.transcription.EXECUTE_SCRIPTS=true
-org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST_SEPARATOR=","
-org.jitsi.jigasi.transcription.SCRIPTS_TO_EXECUTE_LIST=/tmp/script/finalize.sh
-```
-
-This way enables to final script executed. You should change the image tag in `finalize.sh` if needed.
 

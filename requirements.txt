@@ -12,3 +12,4 @@ python-dotenv==1.0.1
 requests==2.32.3
 typing_extensions==4.12.2
 urllib3==2.2.2
+watchdog==4.0.1
