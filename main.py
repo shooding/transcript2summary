@@ -103,7 +103,7 @@ def chat_with_ollama(text):
     }
     # Send the request
     try:
-        response = requests.post(endpoint, json=payload, headers=headers, verify=False, timeout=30)
+        response = requests.post(endpoint, json=payload, headers=headers, verify=False, timeout=(3, 60))
         response.raise_for_status()
         response_data = response.json()
         return response_data
@@ -143,12 +143,12 @@ class Handler(FileSystemEventHandler):
             print(f"File created: {event.src_path}")
             self.json_handler.process_file(event.src_path)
 
-    def on_modified(self, event):
-        if event.is_directory:
-            return None
-        elif event.src_path.endswith('.json'):
-            print(f"File modified: {event.src_path}")
-            self.json_handler.process_file(event.src_path)
+    # def on_modified(self, event):
+    #     if event.is_directory:
+    #         return None
+    #     elif event.src_path.endswith('.json'):
+    #         print(f"File modified: {event.src_path}")
+    #         self.json_handler.process_file(event.src_path)
 
 # Main execution flow
 if __name__ == "__main__":

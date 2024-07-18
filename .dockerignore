@@ -1,0 +1,31 @@
+# Version control
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Custom build and run script
+*.sh
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Backup files
+*.bk
+
+# Python
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
